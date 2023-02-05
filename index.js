@@ -5,12 +5,13 @@ const app = express();
 const port = process.env.PORT || 5000;
 
 const cors = require("cors");
+const e = require("express");
 
 app.use(cors());
 app.use(express.json());
 
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.q66zrl2.mongodb.net/?retryWrites=true&w=majority`;
-const client = new MongoClient(uri, {
+
+const client = new MongoClient(process.env.DB_USER_URL, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
   serverApi: ServerApiVersion.v1,
@@ -18,29 +19,88 @@ const client = new MongoClient(uri, {
 
 const run = async () => {
   try {
-    const db = client.db("moontech");
-    const productCollection = db.collection("product");
+    const db = client.db("boldBlogger");
+    const contentCollection = db.collection("content");
+    const tagsCollection = db.collection("tags");
 
-    app.get("/products", async (req, res) => {
-      const cursor = productCollection.find({});
-      const product = await cursor.toArray();
+    app.get("/tags", async (req, res) => {
+      try {
+        const cursor = tagsCollection.find();
+      const tags = await cursor.toArray();
 
-      res.send({ status: true, data: product });
+      res.send({ status: true, data: tags });
+      } catch (error) {
+        console.log(error);
+      }
+    });
+    app.post("/tags", async (req, res) => {
+      try {
+        const tags = req.body;
+  
+        const result = await tagsCollection.insertOne(tags);
+  
+        res.send(result);
+        
+      } catch (error) {
+        console.log(error);
+      }
     });
 
-    app.post("/product", async (req, res) => {
-      const product = req.body;
-
-      const result = await productCollection.insertOne(product);
-
-      res.send(result);
+    app.get("/contents", async (req, res) => {
+      try {
+        const cursor = contentCollection.find();
+        const content = await cursor.toArray();
+  
+        res.send({ status: true, data: content });
+        
+      } catch (error) {
+        console.log(error);
+      }
+    });
+    
+    app.post("/content", async (req, res) => {
+      try {
+        const content = req.body;
+  
+        const result = await contentCollection.insertOne(content);
+  
+        res.send(result);
+        
+      } catch (error) {
+        console.log(error);
+      }
+    });
+   
+    app.patch("/content/:id", async (req, res) => {
+      try {
+        const content = req.body;
+        
+        const result = await contentCollection.updateOne({ _id : ObjectId(req.params.id)},{$set: {
+          // content
+          photoLink : content.photoLink,
+          title : content.title,
+          description : content.description,
+          date : content.date,
+          tags : content.tags
+        }});
+        const newContent = await contentCollection.findOne({ _id : ObjectId(req.params.id)});
+        res.send({ result , newContent });
+        
+      } catch (error) {
+        console.log(error);
+      }
     });
 
-    app.delete("/product/:id", async (req, res) => {
-      const id = req.params.id;
-
-      const result = await productCollection.deleteOne({ _id: ObjectId(id) });
-      res.send(result);
+    app.delete("/content/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+  
+        const result = await contentCollection.deleteOne({ _id: ObjectId(id) });
+        res.send(result);
+        
+      } catch (error) {
+        console.log(error);
+      }
     });
   } finally {
   }
